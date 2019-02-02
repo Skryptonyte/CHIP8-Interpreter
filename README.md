@@ -14,7 +14,7 @@ A CHIP8 Interpreter written in C and the NCurses Library.
 TETRIS works...
 
 
-Other games and apps go in-game but suffer from issues like corrupted graphics, segfaults (TICTAC and UFO in particular) etc. TICTAC in particular seems to suffer from a Heisenbug/
+Other games and apps go in-game but suffer from issues like corrupted graphics, segfaults (TICTAC and UFO in particular) etc. TICTAC in particular seems to suffer from a Heisenbug.
 
 
 BLINKY loads but is not anywhere near the playable range yet.
