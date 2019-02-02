@@ -233,7 +233,6 @@ switch (opcode){
 		for (unsigned char y = 0; y < lastbyte; y++){
 			int count = 0;
 			for (unsigned char x = 7; x !=0; x--){
-				printf("%d %d\n", x , y);
 				unsigned char prev = display[(v[secbyte])+count][v[seclastbyte]+y];
 				unsigned char* ptr = &display[(v[secbyte])+count][v[seclastbyte]+y];
 				display[(v[secbyte]+count)%64][(v[seclastbyte] + y)%32] ^= ((memory[i+y]) >> (x)) & 1; 
