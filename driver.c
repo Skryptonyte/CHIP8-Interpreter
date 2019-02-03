@@ -58,8 +58,11 @@ void emulateCycle(){
 unsigned short fetch = (memory[pc] << 8) | memory[pc+1];
 //Decode opcode
 //printf("Memory: %p, Opcode: %p, Decoded Instruction: ",pc, fetch);
-decodeOp(fetch);
-
+FILE* f = fopen("new.txt","a");
+decodeOp(fetch, f);
+#ifdef DEBUG
+fclose(f);
+#endif
 pc += 2;
 }
 void displayScreen(){;

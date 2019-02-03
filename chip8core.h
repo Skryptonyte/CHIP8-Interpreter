@@ -1,5 +1,5 @@
 #include <ncurses.h>
-
+//#define DEBUG
 int current_opcode; 
 // 15 registers from V0 to VE
 // 16th register is used as carry flag
@@ -52,19 +52,23 @@ for (int i = 0; i < 0x200; i++){
 memory[i] = fontset[i];
 }
 }
-void decodeOp(unsigned short fetchedOpcode){
+void decodeOp(unsigned short fetchedOpcode, FILE* f){
+#ifdef DEBUG
+//FILE* f = fopen("new.txt","a");
+#endif
 current_opcode = fetchedOpcode;
 switch (fetchedOpcode){
 	case 0x00e0:
+		sleep(1);
 		for (int i = 0; i < 64; i++){
 			for (int j = 0; j < 32; j++){
 				display[i][j] = 0;
 			}
 		}
 		#ifdef DEBUG
-		puts("cls");
-		dpflag ^= 1;
+		fprintf(f,"cls\n");
 		#endif
+		dpflag ^= 1;
 		return;
 	case 0x00ee:
 		#ifdef DEBUG
@@ -76,9 +80,11 @@ switch (fetchedOpcode){
 	}
 unsigned short opcode = fetchedOpcode >> 12;
 
-unsigned short firsthalf = fetchedOpcode >> 8;
-unsigned short secondhalf = fetchedOpcode << 8;
-secondhalf >>= 8;
+unsigned short fh = fetchedOpcode >> 8;
+unsigned short sh = fetchedOpcode << 8;
+sh >>= 8;
+unsigned char firsthalf = fh;
+unsigned char secondhalf = sh;
 
 unsigned char secbyte = (firsthalf << 4);
 secbyte >>= 4;
@@ -88,18 +94,18 @@ unsigned char lastbyte = secondhalf << 4;
 lastbyte >>= 4;
 unsigned short lastthreebyte = (fetchedOpcode << 4);
 lastthreebyte >>= 4;
-
+//fprintf(f,"Opcode (%x): ",fetchedOpcode); 
 switch (opcode){
 	case 0x1:
 		//Jump to location NNN
 		#ifdef DEBUG
-		printf("jp %p\n\n",lastthreebyte);
+		fprintf(f,"jp %p\n\n",lastthreebyte);
 		#endif
 		pc = lastthreebyte - 0x2;
 		return;
 	case 0x2:
 		#ifdef DEBUG
-		printf("call %p\n\n",lastthreebyte);
+		fprintf(f,"call %p\n\n",lastthreebyte);
 		#endif
 		sp++;
 		stack[sp-1] = pc;
@@ -107,15 +113,15 @@ switch (opcode){
 		return;
 	case 0x3:
 		#ifdef DEBUG
-		printf("se V%x, %p\n",secbyte,secondhalf);
+		fprintf(f,"se V%x, %p\n",secbyte,secondhalf);
 		#endif
-		if (!(v[secbyte] ^ secondhalf)){
+		if (v[secbyte] == secondhalf){
 			pc += 2;
 		}
 		return;
 	case 0x4:
 		#ifdef DEBUG
-		printf("sne V%x, %p\n", secbyte, secondhalf);
+		fprintf(f,"sne V%x, %p\n", secbyte, secondhalf);
 		#endif
 		if ((v[secbyte] ^ secondhalf)){
 			pc += 2;
@@ -124,7 +130,7 @@ switch (opcode){
 	case 0x5:
 		if (lastbyte == 0){
 		#ifdef DEBUG
-		printf("se V%x, V%x",secbyte,seclastbyte);
+		fprintf(f,"se V%x, V%x",secbyte,seclastbyte);
 		#endif
 		if (v[secbyte] == v[seclastbyte]){
 			pc += 2;
@@ -133,13 +139,13 @@ switch (opcode){
 		return;
 	case 0x6:
 		#ifdef DEBUG
-		printf("ld V%x, %p\n",secbyte, secondhalf);
+		fprintf(f,"ld V%x, %p\n",secbyte, secondhalf);
 		#endif 
 		v[secbyte] = secondhalf;
 		return;
 	case 0x7:
 		#ifdef DEBUG
-		printf("add V%x, %p\n",secbyte, secondhalf);
+		fprintf(f,"add V%x, %p\n",secbyte, secondhalf);
 		#endif
 		v[secbyte] += secondhalf;
 		return;
@@ -147,37 +153,37 @@ switch (opcode){
 		switch (lastbyte){
 			case 0x0:
 				#ifdef DEBUG
-				printf("ld V%x,V%x\n",secbyte,seclastbyte);
+				fprintf(f,"ld V%x,V%x\n",secbyte,seclastbyte);
 				#endif
 				v[secbyte] = v[seclastbyte];
 				return;
 			case 0x1:
 				#ifdef DEBUG
-				printf("or V%x, V%x\n", secbyte, seclastbyte);
+				fprintf(f,"or V%x, V%x\n", secbyte, seclastbyte);
 				#endif
 				v[secbyte] |= v[seclastbyte];
 				return;
 			case 0x2:
 				#ifdef DEBUG
-				printf("and V%x, V%x\n", secbyte, seclastbyte);
+				fprintf(f,"and V%x, V%x\n", secbyte, seclastbyte);
 				#endif 
 				v[secbyte] &= v[seclastbyte];
 				return;
 			case 0x3:
 				#ifdef DEBUG
-				printf("xor V%x, V%x\n", secbyte, seclastbyte);
+				fprintf(f,"xor V%x, V%x\n", secbyte, seclastbyte);
 				#endif
 				v[secbyte] ^= v[seclastbyte];
 				return;
 			case 0x4:
 				#ifdef DEBUG
-				printf("add V%x, V%x\n",secbyte, seclastbyte);
+				fprintf(f,"add V%x, V%x\n",secbyte, seclastbyte);
 				#endif
 				v[secbyte] += v[seclastbyte];
 				return;
 			case 0x5:
 				#ifdef DEBUG
-				printf("sub V%x, V%x\n",secbyte, seclastbyte);
+				fprintf(f,"sub V%x, V%x\n",secbyte, seclastbyte);
 				#endif
 				if (v[seclastbyte] > v[secbyte]){
 					v[0xf] = 0x0;
@@ -189,14 +195,14 @@ switch (opcode){
 				return;
 			case 0x6:
 				#ifdef DEBUG
-				printf("shr V%x, V%x\n",secbyte,seclastbyte);
+				fprintf(f,"shr V%x, V%x\n",secbyte,seclastbyte);
 				#endif
 				v[0xf] = v[secbyte] & 1;
 				v[secbyte] >>= 1;
 				return;
 			case 0x7:
 				#ifdef DEBUG
-				printf("subn V%x, V%x\n",secbyte, seclastbyte);
+				fprintf(f,"subn V%x, V%x\n",secbyte, seclastbyte);
 				#endif
 				if (v[secbyte] > v[seclastbyte]){
 					v[0xf] = 0x0;
@@ -209,14 +215,14 @@ switch (opcode){
 			case 0xe:
 				v[0xf] = v[secbyte] >> 7;
 				#ifdef DEBUG
-				printf("shl V%x, V%x\n",secbyte, seclastbyte);
+				fprintf(f,"shl V%x, V%x\n",secbyte, seclastbyte);
 				#endif
 				v[secbyte] = v[secbyte] << 1;
 				return;
 				}
 	case 0x9:
 		#ifdef DEBUG
-		printf("sne V%x, V%x",secbyte, seclastbyte);
+		fprintf(f,"sne V%x, V%x",secbyte, seclastbyte);
 		#endif
 		if (v[secbyte] != v[seclastbyte]){
 			pc += 2;
@@ -224,26 +230,27 @@ switch (opcode){
 		return;
 	case 0xa:
 		#ifdef DEBUG
-		printf("ld I, %p\n",lastthreebyte);
+		fprintf(f,"ld I, %p\n",lastthreebyte);
 		#endif
 		i = lastthreebyte;
 		return;
 	case 0xb:
 		#ifdef DEBUG
-		printf("jp V0, %x\n",lastthreebyte);
+		fprintf(f,"jp V0, %x\n",lastthreebyte);
 		#endif
 		pc = v[0] + lastthreebyte - 0x2;	
 		return;
 	case 0xc:
 		#ifdef DEBUG
-		printf("rnd V%x, %p\n",secbyte,secondhalf);
+		fprintf(f,"rnd V%x, %p\n",secbyte,secondhalf);
 		#endif
 		v[secbyte] = random() % 0xff;
 		v[secbyte] &= secondhalf;
+		return;
 	case 0xd:
 		v[0xf] = 0x0;
 		#ifdef DEBUG
-		printf("drw V%x, V%x, %p\n",secbyte, seclastbyte, lastbyte);
+		fprintf(f,"drw V%x, V%x, %p\n",secbyte, seclastbyte, lastbyte);
 		#endif
 		for (unsigned char y = 0; y < lastbyte; y++){
 			int count = 0;
@@ -286,13 +293,13 @@ switch (opcode){
 		switch (secondhalf){
 			case 0x07:
 				#ifdef DEBUG
-				printf("ld V%x, DT\n",secbyte);
+				fprintf(f,"ld V%x, DT\n",secbyte);
 				#endif
 				v[secbyte] = dt;
 				return;
 			case 0xa:
 				#ifdef DEBUG
-				printf("ld V%x, K\n",secbyte);
+				fprintf(f,"ld V%x, K\n",secbyte);
 				#endif
 				flushinp();
 				v[secbyte] = getch();
@@ -306,13 +313,13 @@ switch (opcode){
 				return;
 			case 0x15:
 				#ifdef DEBUG
-				printf("ld DT, V%x\n",secbyte);
+				fprintf(f,"ld DT, V%x\n",secbyte);
 				#endif
 				dt = v[secbyte];
 				return;
 			case 0x1e:
 				#ifdef DEBUG
-				printf("add I, V%x\n",secbyte);
+				fprintf(f,"add I, V%x\n",secbyte);
 				#endif
 				if (i + v[secbyte] > 0xFFF){
 					v[0xf] = 0x1;
@@ -324,43 +331,41 @@ switch (opcode){
 				return;
 			case 0x29:
 				#ifdef DEBUG
-				printf("ld f, V%x\n",secbyte);
+				fprintf(f,"ld f, V%x\n",secbyte);
 				#endif
 				i = (5 * v[secbyte]);
 				return;	
 			
 			case 0x33:
 				#ifdef DEBUG
-				printf("ld B, V%x\n", secbyte);
+				fprintf(f,"ld B, V%x\n", secbyte);
 				#endif
 				memory[i] = (v[secbyte] / 100);
 				memory[i+1] = (v[secbyte] % 100);
 				memory[i+1] /= 10;
 				memory[i+2] = (v[secbyte] % 10);
 				return;
-				}
 			case 0x55:
 				#ifdef DEBUG
-				printf("ld [I], V%x\n", secbyte);
+				fprintf(f,"Haunted INstruction: ld [I], V%x\n", secbyte);
 				#endif
 				for (int V = 0; V <= secbyte; V++){
 				memory[i+V] = v[V];
 				}
-				//i = i + secbyte + 1;
 				return;
+				//i = i + secbyte + 1;
 			case 0x65:
 				#ifdef DEBUG
-				printf("ld V%x, [I]\n",secbyte);
+				fprintf(f,"ld V%x, [I]\n",secbyte);
 				#endif
 				for (int V = 0; V <= secbyte; V++){
 				v[V] = memory[i + V];
 				}
 				//i = i + secbyte + 1;
 				return;
+				}
+		}
 	}
-	endwin();
-	printf("Unknown opcode: %p\n",fetchedOpcode);
+	//endwin();
+	//printf("Unknown opcode: %p\n",fetchedOpcode);
 
-//	#endif
-	
-}

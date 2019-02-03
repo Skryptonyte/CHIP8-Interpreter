@@ -11,18 +11,12 @@ A CHIP8 Interpreter written in C and the NCurses Library.
 
 ### What works?
 
-TETRIS, MAZE and KALEID works...
+Most games now work ( or at least appear to ). Most of the game breaking problems was because of improper writing of switch statement but with hardcore debugging, I finally made it through E17 meaning my emulator now passes all 17 tests of the TEST ROM with a flying BON.
 
-
-Other games and apps go in-game but suffer from issues like corrupted graphics and weird behaviour. This is more than likely due to improperly implemented opcodes and the fact that none of the instructions affect the flag register except for DRW.
-
-
-BLINKY loads but is not anywhere near the playable range yet.
 
 ### TODO
   * Implement Sound Timer
-  * Complete rewrite of the DRW Instruction
-  * Fix opcodes to improve compatibility
+  * Add quirk options to account for games following different CHIP-8 specs.
   * Option to disassemble to a file
   * Super CHIP-8 Support ( Far future )
   
