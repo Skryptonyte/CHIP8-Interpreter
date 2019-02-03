@@ -63,6 +63,7 @@ switch (fetchedOpcode){
 		}
 		#ifdef DEBUG
 		puts("cls");
+		dpflag ^= 1;
 		#endif
 		return;
 	case 0x00ee:
@@ -178,25 +179,39 @@ switch (opcode){
 				#ifdef DEBUG
 				printf("sub V%x, V%x\n",secbyte, seclastbyte);
 				#endif
+				if (v[seclastbyte] > v[secbyte]){
+					v[0xf] = 0x0;
+				}
+				else {
+					v[0xf] = 0x1;
+				}
 				v[secbyte] -= v[seclastbyte];
 				return;
 			case 0x6:
 				#ifdef DEBUG
 				printf("shr V%x, V%x\n",secbyte,seclastbyte);
 				#endif
-				v[secbyte] >>= v[seclastbyte];
+				v[0xf] = v[secbyte] & 1;
+				v[secbyte] >>= 1;
 				return;
 			case 0x7:
 				#ifdef DEBUG
 				printf("subn V%x, V%x\n",secbyte, seclastbyte);
 				#endif
+				if (v[secbyte] > v[seclastbyte]){
+					v[0xf] = 0x0;
+				}
+				else{
+					v[0xf] = 0x1;
+				}
 				v[secbyte] = v[seclastbyte] - v[secbyte];
 				return;
 			case 0xe:
+				v[0xf] = v[secbyte] >> 7;
 				#ifdef DEBUG
 				printf("shl V%x, V%x\n",secbyte, seclastbyte);
 				#endif
-				v[secbyte] <<= v[seclastbyte];
+				v[secbyte] = v[secbyte] << 1;
 				return;
 				}
 	case 0x9:
@@ -233,8 +248,8 @@ switch (opcode){
 		for (unsigned char y = 0; y < lastbyte; y++){
 			int count = 0;
 			for (unsigned char x = 7; x !=0; x--){
-				unsigned char prev = display[(v[secbyte])+count][v[seclastbyte]+y];
-				unsigned char* ptr = &display[(v[secbyte])+count][v[seclastbyte]+y];
+				unsigned char prev = display[((v[secbyte])+count)%64][(v[seclastbyte]+y)%32];
+				unsigned char* ptr = &display[((v[secbyte])+count)%64][(v[seclastbyte]+y)%32];
 				display[(v[secbyte]+count)%64][(v[seclastbyte] + y)%32] ^= ((memory[i+y]) >> (x)) & 1; 
 				count++;
 				if (prev != *ptr && prev == 1){
@@ -299,6 +314,12 @@ switch (opcode){
 				#ifdef DEBUG
 				printf("add I, V%x\n",secbyte);
 				#endif
+				if (i + v[secbyte] > 0xFFF){
+					v[0xf] = 0x1;
+				}
+				else{
+					v[0xf] = 0x0;
+				}
 				i += v[secbyte];
 				return;
 			case 0x29:
@@ -312,8 +333,9 @@ switch (opcode){
 				#ifdef DEBUG
 				printf("ld B, V%x\n", secbyte);
 				#endif
-				memory[i] = v[secbyte] / 100;
-				memory[i+1] = (v[secbyte] % 100) / 10;
+				memory[i] = (v[secbyte] / 100);
+				memory[i+1] = (v[secbyte] % 100);
+				memory[i+1] /= 10;
 				memory[i+2] = (v[secbyte] % 10);
 				return;
 				}
@@ -322,24 +344,23 @@ switch (opcode){
 				printf("ld [I], V%x\n", secbyte);
 				#endif
 				for (int V = 0; V <= secbyte; V++){
-				memory[i] = v[V];
-				i++;
+				memory[i+V] = v[V];
 				}
+				//i = i + secbyte + 1;
 				return;
 			case 0x65:
 				#ifdef DEBUG
 				printf("ld V%x, [I]\n",secbyte);
 				#endif
 				for (int V = 0; V <= secbyte; V++){
-				v[V] = memory[i];
-				i++;
+				v[V] = memory[i + V];
 				}
+				//i = i + secbyte + 1;
 				return;
 	}
 	endwin();
 	printf("Unknown opcode: %p\n",fetchedOpcode);
-	exit(0);
-	//puts("Unrecognized opcode");
+
 //	#endif
 	
 }

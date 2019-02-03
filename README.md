@@ -11,10 +11,10 @@ A CHIP8 Interpreter written in C and the NCurses Library.
 
 ### What works?
 
-TETRIS works...
+TETRIS, MAZE and KALEID works...
 
 
-Other games and apps go in-game but suffer from issues like corrupted graphics, segfaults (TICTAC and UFO in particular) etc. TICTAC in particular seems to suffer from a Heisenbug.
+Other games and apps go in-game but suffer from issues like corrupted graphics and weird behaviour. This is more than likely due to improperly implemented opcodes and the fact that none of the instructions affect the flag register except for DRW.
 
 
 BLINKY loads but is not anywhere near the playable range yet.
@@ -23,15 +23,14 @@ BLINKY loads but is not anywhere near the playable range yet.
   * Implement Sound Timer
   * Complete rewrite of the DRW Instruction
   * Fix opcodes to improve compatibility
-  * Support for Windows WITH PDCurses
   * Option to disassemble to a file
   * Super CHIP-8 Support ( Far future )
   
 
 ### Requirements for compilation and use
 
-  * GCC/Clang
-  * NCurses
+  * GCC/Clang ( or MinGW on Windows )
+  * NCurses (on UNIX based systems / PDCurses (for Windows)
   * A terminal that supports Unicode
 
 

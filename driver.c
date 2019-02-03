@@ -13,6 +13,11 @@ sleep(1);
 endwin();
 puts("Invalid Memory Access..");
 printf("Offending OpCode: %x\nProgram Counter: %x\n",current_opcode, pc);
+puts("Registers: ");
+for (int i = 0; i <= 0xf; i++){
+printf("V%x: %d\n",i,v[i]);
+}
+printf("I: %x, PC = %x\n", i, pc);
 exit(sig);
 }
 void initialize(){
@@ -32,7 +37,7 @@ void loadGame(char* c){
 FILE* fp = fopen(c,"rb");
 
 if (!fp){
-	//puts("Unable to load game..");
+	puts("Unable to load game..");
 	return;
 }
 //puts("Loading into memory");
@@ -75,6 +80,7 @@ refresh();
 }
 int main(int argc, char *argv[]){
 signal(SIGSEGV, handler);
+//signal(SIGINT, handler);
 setlocale(LC_CTYPE,"");
 initscr();
 beep();
