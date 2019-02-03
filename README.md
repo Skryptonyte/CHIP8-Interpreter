@@ -12,10 +12,9 @@ A CHIP8 Interpreter written in C and the NCurses Library.
 ### What works?
 
 TETRIS, MAZE and KALEID works...
+The test ROM (https://slack-files.com/T3CH37TNX-F3RKEUKL4-b05ab4930d) makes it up to E17. 
 
-
-Other games and apps go in-game but suffer from issues like corrupted graphics and weird behaviour. This is more than likely due to improperly implemented opcodes and the fact that none of the instructions affect the flag register except for DRW.
-
+Other games and apps go in-game but suffer from issues like corrupted graphics and weird behaviour.
 
 BLINKY loads but is not anywhere near the playable range yet.
 
