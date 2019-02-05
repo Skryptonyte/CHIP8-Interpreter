@@ -9,6 +9,7 @@ A CHIP8 Interpreter written in C and the NCurses Library.
   * Display and keyboard support implemented using NCurses
   * Interpreter runs at 1000Hz clock speed.
 
+Changelog: https://github.com/Skryptonyte/CHIP8-Interpreter/blob/master/CHANGELOG.md
 ### What works?
 
 Most games now work ( or at least appear to ). Most of the game breaking problems was because of improper writing of switch statement but with hardcore debugging, I finally made it through E17 meaning my emulator now passes all 17 tests of the TEST ROM with a flying BON.
