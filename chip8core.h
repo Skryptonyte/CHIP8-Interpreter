@@ -1,13 +1,18 @@
-#include <ncurses.h>
+#include <curses.h>
+#include <stdlib.h>
 //#define DEBUG
 int current_opcode; 
 // 15 registers from V0 to VE
 // 16th register is used as carry flag
 // Address register I stored index. Used for memory operations
+unsigned char key = 255;
 unsigned char dpflag = 0;
 unsigned char v[17];
 unsigned short i;
 unsigned short pc;
+
+short int display_x = 64;
+short int display_y = 32;
 /*
 4K memory available to CHIP8
 Font data stored in 0x000 - 0x200
@@ -43,7 +48,7 @@ unsigned short sp;
 //Display
 // Has only two states: ON/OFF. Hence, it is black and white.
 wchar_t states[2] = {' ',0x2588};
-unsigned char display[64][32];
+unsigned char display[128][64];
 
 unsigned char dt;
 unsigned char st;
@@ -60,8 +65,8 @@ current_opcode = fetchedOpcode;
 switch (fetchedOpcode){
 	case 0x00e0:
 		sleep(1);
-		for (int i = 0; i < 64; i++){
-			for (int j = 0; j < 32; j++){
+		for (int i = 0; i < display_x; i++){
+			for (int j = 0; j < display_y; j++){
 				display[i][j] = 0;
 			}
 		}
@@ -244,7 +249,7 @@ switch (opcode){
 		#ifdef DEBUG
 		fprintf(f,"rnd V%x, %p\n",secbyte,secondhalf);
 		#endif
-		v[secbyte] = random() % 0xff;
+		v[secbyte] = rand() % 0xff;
 		v[secbyte] &= secondhalf;
 		return;
 	case 0xd:
@@ -255,9 +260,9 @@ switch (opcode){
 		for (unsigned char y = 0; y < lastbyte; y++){
 			int count = 0;
 			for (unsigned char x = 7; x !=0; x--){
-				unsigned char prev = display[((v[secbyte])+count)%64][(v[seclastbyte]+y)%32];
-				unsigned char* ptr = &display[((v[secbyte])+count)%64][(v[seclastbyte]+y)%32];
-				display[(v[secbyte]+count)%64][(v[seclastbyte] + y)%32] ^= ((memory[i+y]) >> (x)) & 1; 
+				unsigned char prev = display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
+				unsigned char* ptr = &display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
+				display[(v[secbyte]+count)%display_x][(v[seclastbyte] + y)%display_y] ^= ((memory[i+y]) >> (x)) & 1; 
 				count++;
 				if (prev != *ptr && prev == 1){
 					v[0xf] = 1;
@@ -267,11 +272,11 @@ switch (opcode){
 		dpflag ^= 1;
 		return;	
 	case 0xe:
-		;
-		nodelay(stdscr,TRUE);
 		switch (secondhalf){
 			case 0x9e:
+				{
 				;
+				nodelay(stdscr,TRUE);
 				unsigned char x= getch();
 				if (x - '0' == v[secbyte] || (x - 'a' + 0xa == v[secbyte])){
 					pc += 2;
@@ -279,15 +284,19 @@ switch (opcode){
 				flushinp();
 				nodelay(stdscr,FALSE);
 				return;
+				break;
+				}
 			case 0xa1:
 				;
+				{
+				nodelay(stdscr, TRUE);
 				unsigned char c= getch();
 				if (c - '0' != v[secbyte]){
 					pc += 2;
 				}
-				flushinp();
 				nodelay(stdscr,FALSE);
 				return;
+				}
 		}	
 	case 0xf:
 		switch (secondhalf){
@@ -316,6 +325,12 @@ switch (opcode){
 				fprintf(f,"ld DT, V%x\n",secbyte);
 				#endif
 				dt = v[secbyte];
+				return;
+			case 0x18:
+				#ifdef DEBUG
+				fprintf(f,"ld ST, V%x\n",secbyte);
+				#endif
+				st = v[secbyte];
 				return;
 			case 0x1e:
 				#ifdef DEBUG
@@ -347,7 +362,7 @@ switch (opcode){
 				return;
 			case 0x55:
 				#ifdef DEBUG
-				fprintf(f,"Haunted INstruction: ld [I], V%x\n", secbyte);
+				fprintf(f,"ld [I], V%x\n", secbyte);
 				#endif
 				for (int V = 0; V <= secbyte; V++){
 				memory[i+V] = v[V];
@@ -365,7 +380,8 @@ switch (opcode){
 				return;
 				}
 		}
-	}
-	//endwin();
-	//printf("Unknown opcode: %p\n",fetchedOpcode);
-
+	
+	endwin();
+	printf("Unknown opcode: %p\n",fetchedOpcode);
+	exit(1);
+}

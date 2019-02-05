@@ -37,7 +37,9 @@ void loadGame(char* c){
 FILE* fp = fopen(c,"rb");
 
 if (!fp){
-	puts("Unable to load game..");
+	endwin();
+	puts("Game not found... exitting");
+	exit(1);
 	return;
 }
 //puts("Loading into memory");
@@ -69,9 +71,9 @@ void displayScreen(){;
 //static unsigned long int counter = 0;
 //clear() 
 refresh();
-for (int j = 0; j < 32; j++){
+for (int j = 0; j < display_y; j++){
 
-for (int i = 0; i < 64; i++){
+for (int i = 0; i < display_x; i++){
 mvprintw(j,i*2,"%lc%lc",states[display[i][j] % 2],states[display[i][j]%2]);
 //mvprintw(j, i+1,"%lc",states[display[i][j] % 2],states[display[i][j]%2]);
 //mvprintw(j, i+2,"%lc",states[display[i][j] % 2],states[display[i][j]%2]);
@@ -82,10 +84,21 @@ refresh();
 //sleep(1);
 }
 int main(int argc, char *argv[]){
+for (int i =2 ; i < argc; i++){
+if (!strcmp(argv[i],"--hires")){
+display_y = 64;
+}
+if (!strcmp(argv[i],"--schip8")){
+display_x = 128;
+display_y = 64;
+}
+}
 signal(SIGSEGV, handler);
 //signal(SIGINT, handler);
 setlocale(LC_CTYPE,"");
 initscr();
+WINDOW* win = newwin(15,48,0, display_x*2 +3);
+//box(win,0,0);
 beep();
 sleep(1);
 getch();
@@ -99,13 +112,12 @@ if (argc >= 2){
 else{
 	//puts("No game specified...");
 }
-
 int cycle = 1;
+//processInput();
 for (;;){
 emulateCycle();
 //decodeOp(0xA00a);
 //decodeOp(0xD005);
-usleep(2000);
 if (dpflag){
 displayScreen();
 dpflag ^= 1;
@@ -113,6 +125,20 @@ dpflag ^= 1;
 if (dt > 0 && (cycle % 60 == 0)){
 	dt--;
 }
+if (st > 0 && (cycle % 60 == 0)){
+	st--;
+}
 cycle++;
+werase(win);
+box(win,0,0);
+mvwprintw(win,0,3,"Registers");
+for (int i =0; i <= 7; i++){
+mvwprintw(win,i+2,1,"V%x : %d",i,v[i]);
+mvwprintw(win,i+2, 20 ,"V%x : %d",8+i,v[8+i]);
+}
+mvwprintw(win,12,1,"Program Counter: %p   I: %p",pc, i);
+mvwprintw(win,13,1,"DT: %d    ST: %d",dt,st);
+wrefresh(win);
+usleep(1000);
 }
 }
