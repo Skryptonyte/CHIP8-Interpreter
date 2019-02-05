@@ -8,7 +8,7 @@ A CHIP8 Interpreter written in C and the NCurses Library.
   * Most applications will work, however I would not recommend it for general use yet mainly due to input system needing improvement
   * Display and keyboard support implemented using NCurses
   * Interpreter runs at 1000Hz clock speed.
-
+  * HiRes mode using `--hires` and preliminary SuperChip-8 option `--schip8`
 Changelog: https://github.com/Skryptonyte/CHIP8-Interpreter/blob/master/CHANGELOG.md
 ### What works?
 
