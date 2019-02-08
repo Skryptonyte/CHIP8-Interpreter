@@ -12,12 +12,12 @@ A CHIP8 Interpreter written in C and the NCurses Library.
 Changelog: https://github.com/Skryptonyte/CHIP8-Interpreter/blob/master/CHANGELOG.md
 ### What works?
 
-Most games now work. Most of the game breaking problems was because of improper writing of switch statement but with hardcore debugging, I finally made it through E17 meaning my emulator now passes all 17 tests of the TEST ROM with a flying BON.
+All CHIP-8 games work. SUPER CHIP-8 games may also work as long as there is no scrolling.
 
-The test ROM (https://slack-files.com/T3CH37TNX-F3RKEUKL4-b05ab4930d) makes it up to E17. 
+
 ### TODO
   * Add enhancements for CHIP-8
-    * Super CHIP-8 Instruction set
+    * Add scrolling CHIP-8 Instructions
     * Mega CHIP-8 Instruction set
   * Option to disassemble to a file
   

@@ -7,7 +7,10 @@ int current_opcode;
 // Address register I stored index. Used for memory operations
 unsigned char key = 255;
 unsigned char dpflag = 0;
+
 unsigned char v[17];
+unsigned char rpl[17];
+
 unsigned short i;
 unsigned short pc;
 
@@ -62,6 +65,8 @@ void decodeOp(unsigned short fetchedOpcode, FILE* f){
 //FILE* f = fopen("new.txt","a");
 #endif
 current_opcode = fetchedOpcode;
+
+/*
 switch (fetchedOpcode){
 	case 0x00e0:
 		sleep(1);
@@ -81,8 +86,9 @@ switch (fetchedOpcode){
 		#endif
 		pc = stack[sp-1];
 		sp--;
-		return;
+		return;		
 	}
+*/
 unsigned short opcode = fetchedOpcode >> 12;
 
 unsigned short fh = fetchedOpcode >> 8;
@@ -101,6 +107,53 @@ unsigned short lastthreebyte = (fetchedOpcode << 4);
 lastthreebyte >>= 4;
 //fprintf(f,"Opcode (%x): ",fetchedOpcode); 
 switch (opcode){
+	case 0x0:
+		{
+		switch (secondhalf){	
+			case 0xe0:
+				#ifdef DEBUG
+				fprintf(f,"cls");
+				#endif
+				for (int i = 0; i < display_x; i++){
+					for (int j = 0; j < display_y; j++){
+						display[i][j] = 0;
+					}
+				}
+				dpflag ^= 1;
+				return;
+			case 0xee:
+				#ifdef DEBUG
+					fprintf(f,"ret\n");
+				#endif
+				pc = stack[sp-1];
+				sp--;
+				return;
+			case 0xfd:
+				#ifdef DEBUG
+					fprintf(f,"ret\n");
+				#endif
+				endwin();
+				puts("Exit requested by program..");
+				exit(0);
+				return;
+			case 0xfe:
+				#ifdef DEBUG
+					fprintf(f,"low\n");
+				#endif
+				display_x = 64;
+				display_y = 32;
+				return;
+			case 0xff:
+				#ifdef DEBUG
+					fprintf(f,"HIGH\n");
+				#endif
+				display_x = 128;
+				display_y = 64;
+				return;
+			default:
+				return;
+		}
+		}
 	case 0x1:
 		//Jump to location NNN
 		#ifdef DEBUG
@@ -257,12 +310,24 @@ switch (opcode){
 		#ifdef DEBUG
 		fprintf(f,"drw V%x, V%x, %p\n",secbyte, seclastbyte, lastbyte);
 		#endif
+		unsigned char bitcount = 7;
+		if (lastbyte == 0){
+			bitcount = 15;
+			lastbyte = 16;
+		}
 		for (unsigned char y = 0; y < lastbyte; y++){
+			unsigned short sprite = (memory[i +y] << 8)|memory[i+y+1];
 			int count = 0;
 			for (unsigned char x = 7; x !=0; x--){
 				unsigned char prev = display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
 				unsigned char* ptr = &display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
+				if (bitcount == 7){
 				display[(v[secbyte]+count)%display_x][(v[seclastbyte] + y)%display_y] ^= ((memory[i+y]) >> (x)) & 1; 
+				}
+				else if (bitcount == 15){
+				unsigned short b = (((memory[i+y] << 8) | memory[i+y+1]) >> (x)) & 1;
+				display[(v[secbyte]+count)%display_x][(v[seclastbyte] + y)%display_y] ^= b;
+				}
 				count++;
 				if (prev != *ptr && prev == 1){
 					v[0xf] = 1;
@@ -350,7 +415,9 @@ switch (opcode){
 				#endif
 				i = (5 * v[secbyte]);
 				return;	
-			
+			case 0x30:
+				i = ((0xf*0x5)+ 10 * v[secbyte]);
+				return;
 			case 0x33:
 				#ifdef DEBUG
 				fprintf(f,"ld B, V%x\n", secbyte);
@@ -378,10 +445,21 @@ switch (opcode){
 				}
 				//i = i + secbyte + 1;
 				return;
+			case 0x75:
+				for (int V = 0; V <= secbyte && V <= 7; V++){
+					rpl[V] = v[V];
 				}
+				return;
+			case 0x85:
+				for (int V = 0; V <= secbyte && V <= 7; V++){
+					v[V] = rpl[V];
+				}
+				return;
+			default:
+				return;
+			}
 		}
-	
-	endwin();
-	printf("Unknown opcode: %p\n",fetchedOpcode);
-	exit(1);
+//		endwin();
+//		printf("Unknown opcode: %p\n",fetchedOpcode);
+//		exit(1);
 }
