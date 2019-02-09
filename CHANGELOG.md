@@ -1,3 +1,7 @@
+# Release 1.0.1a
+  * DRW Instruction had a bug where sprites would appear to have vertical scanlines. This was causes by forgetting to draw the 8th bit of each byte of the sprite.
+  * DRW instruction's SCHIP extension turned out to be severely broken. I've fixed that.
+
 # Release 1.0.1
 
   * RPL User flags added

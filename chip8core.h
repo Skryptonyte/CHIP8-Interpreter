@@ -237,6 +237,9 @@ switch (opcode){
 				#ifdef DEBUG
 				fprintf(f,"add V%x, V%x\n",secbyte, seclastbyte);
 				#endif
+				if (v[secbyte] + v[seclastbyte] > 255){
+					v[0xf] = 1;
+				}
 				v[secbyte] += v[seclastbyte];
 				return;
 			case 0x5:
@@ -311,28 +314,33 @@ switch (opcode){
 		fprintf(f,"drw V%x, V%x, %p\n",secbyte, seclastbyte, lastbyte);
 		#endif
 		unsigned char bitcount = 7;
+		unsigned char inc = 1;
 		if (lastbyte == 0){
 			bitcount = 15;
 			lastbyte = 16;
 		}
+		int ycount = 0;
 		for (unsigned char y = 0; y < lastbyte; y++){
-			unsigned short sprite = (memory[i +y] << 8)|memory[i+y+1];
+			unsigned short sprite = (memory[i +ycount] << 8)|memory[i+ycount+1];
 			int count = 0;
-			for (unsigned char x = 7; x !=0; x--){
+			for (char x = bitcount; x >=0; x--){
 				unsigned char prev = display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
 				unsigned char* ptr = &display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
 				if (bitcount == 7){
 				display[(v[secbyte]+count)%display_x][(v[seclastbyte] + y)%display_y] ^= ((memory[i+y]) >> (x)) & 1; 
 				}
 				else if (bitcount == 15){
-				unsigned short b = (((memory[i+y] << 8) | memory[i+y+1]) >> (x)) & 1;
+				//unsigned short b = (((memory[i+ycount] << 8) | memory[i+ycount+1]) >> (x)) & 1;
+				unsigned short b = (sprite >> x) & 1; 
 				display[(v[secbyte]+count)%display_x][(v[seclastbyte] + y)%display_y] ^= b;
 				}
 				count++;
 				if (prev != *ptr && prev == 1){
 					v[0xf] = 1;
 				}
+				//ycount += 2;
 			}
+			ycount += 2;
 		}
 		dpflag ^= 1;
 		return;	

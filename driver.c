@@ -149,6 +149,6 @@ mvwprintw(win,i+2, 20 ,"V%x : %d",8+i,v[8+i]);
 mvwprintw(win,12,1,"Program Counter: %p   I: %p  Opcode: %p",pc, i,current_opcode);
 mvwprintw(win,13,1,"DT: %d    ST: %d",dt,st);
 wrefresh(win);
-usleep(2000);
+usleep(100);
 }
 }
