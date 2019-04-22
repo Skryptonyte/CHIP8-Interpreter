@@ -1,3 +1,11 @@
+# Release 1.0.2
+
+  * RND function now seeded at the start of execution to make it more random
+  * Vertical scrolling implemented ( I don't even know whether this works ). Half pixel scroll (Scrolling in non-extended mdoe) doesn't and probably never will due to the limitations of the implementation of my display. I'd need to do a complete rewrite of the display to get 64x32 to scale to a 128x64 display size.
+  * Massive code clean up
+  * 10 byte fontset added
+  * HiRes mode initialization fixed.
+
 # Release 1.0.1a
   * DRW Instruction had a bug where sprites would appear to have vertical scanlines. This was causes by forgetting to draw the 8th bit of each byte of the sprite.
   * DRW instruction's SCHIP extension turned out to be severely broken. I've fixed that.

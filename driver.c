@@ -22,7 +22,18 @@ usleep(16666);
 }
 return NULL;
 }
-
+void* inputHandler(void* meh){
+while (0){
+nodelay(stdscr,TRUE);
+unsigned short x= getch();
+x = x -'0';
+if ( 0 <= x && x <= 9){
+        keyb = x;
+     lastkey = x;
+}
+usleep(20);
+}
+}
 void handler(int sig){
 sleep(1);
 endwin();
@@ -43,6 +54,7 @@ sp = 0;
 current_opcode = 0;
 i = 0;
 dpflag = 0;
+keyb = 0;
 
 dt = 0;
 st = 0;
@@ -57,83 +69,70 @@ if (!fp){
 	exit(1);
 	return;
 }
-//puts("Loading into memory");
 unsigned char ch = getc(fp);
 int size = 0;
 for (int i = 512; i < 4096; i++){
 	memory[i] = ch;
-	//printf("%c",memory[i+512]);
 	size += 1;
 	ch = getc(fp);
 }
-//printf("Read game into memory, Size: %d bytes\n",size);
-//puts(memory+512);
 }
 
 void emulateCycle(){
-//Fetch opcode at program counter
 unsigned short fetch = (memory[pc] << 8) | memory[pc+1];
-//Decode opcode
-//printf("Memory: %p, Opcode: %p, Decoded Instruction: ",pc, fetch);
-FILE* f = fopen("new.txt","a");
-decodeOp(fetch, f);
-#ifdef DEBUG
-fclose(f);
-#endif
+decodeOp(fetch);
 pc += 2;
 }
-void displayScreen(){;
-//static unsigned long int counter = 0;
-//clear() 
+void displayScreen(){; 
 refresh();
 for (int j = 0; j < display_y; j++){
 
 for (int i = 0; i < display_x; i++){
 mvprintw(j,i*2,"%lc%lc",states[display[i][j] % 2],states[display[i][j]%2]);
-//mvprintw(j, i+1,"%lc",states[display[i][j] % 2],states[display[i][j]%2]);
-//mvprintw(j, i+2,"%lc",states[display[i][j] % 2],states[display[i][j]%2]);
 }
-//sleep(1);
 }
 refresh();
-//sleep(1);
 }
+
 int main(int argc, char *argv[]){
-for (int i =2 ; i < argc; i++){
-if (!strcmp(argv[i],"--hires")){
-display_y = 64;
-}
-}
+srand(time(0));
 signal(SIGSEGV, handler);
-//signal(SIGINT, handler);
 setlocale(LC_CTYPE,"");
+
 initscr();
 start_color();
 WINDOW* win = newwin(15,51,0, display_x*2 +3);
+
 init_pair(1,COLOR_GREEN, COLOR_BLACK);
 wattron(stdscr,COLOR_PAIR(1));
-//box(win,0,0);
-beep();
-sleep(1);
-getch();
-//resize_term(1920,1080);
-//puts("WIP CHIP8 emulator");
-initialize();;
+
+initialize();
 fillFont();
-if (argc >= 2){
-	loadGame(argv[1]);
-}
-else{
-	//puts("No game specified...");
-}
-pthread_t pid;
+loadGame(argv[1]);
+pthread_t pid, pid2;
 pthread_create(&pid,NULL,delayHandler,NULL);
+pthread_create(&pid2,NULL,inputHandler,NULL);
 int cycle = 1;
-//processInput();
+
+if ((memory[pc] << 8 | memory[pc+1]) == 0x1260){
+display_x = 64;
+display_y = 64;
+pc = 0x2c0 - 2;
+}
+
 for (;;){
+nodelay(stdscr,TRUE);
+
+/*
+unsigned short x= getch();
+x = x -'0';
+if ( 0 <= x && x <= 9){
+	keyb = x;
+     lastkey = x;
+}
+}
+*/
 emulateCycle();
-//decodeOp(0xA00a);
-//decodeOp(0xD005);
 if (dpflag){
 displayScreen();
 dpflag ^= 1;
@@ -146,9 +145,11 @@ for (int i =0; i <= 7; i++){
 mvwprintw(win,i+2,1,"V%x : %d",i,v[i]);
 mvwprintw(win,i+2, 20 ,"V%x : %d",8+i,v[8+i]);
 }
+mvwprintw(win,11,1,"Key: %d",lastkey);
 mvwprintw(win,12,1,"Program Counter: %p   I: %p  Opcode: %p",pc, i,current_opcode);
 mvwprintw(win,13,1,"DT: %d    ST: %d",dt,st);
 wrefresh(win);
-usleep(100);
+usleep(1000);
+
 }
 }
