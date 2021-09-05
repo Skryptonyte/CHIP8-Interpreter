@@ -1,6 +1,6 @@
 # What's this?
 
-A CHIP8 Interpreter written in C and the NCurses Library.
+A CHIP8 Interpreter written with OpenGL
 
 ### Progress
 
