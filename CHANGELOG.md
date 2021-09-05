@@ -1,4 +1,11 @@
 
+
+# Release 1.2.0
+  * Scroll functions implemented properly (except half scroll), making SCHIP-8 support 99% complete
+  * Input system implemented for OpenGL version, Q W E R A S D F Z X C V will act as the emulated keypad.
+  * Option to adjust cycles per frame
+  
+
 # Release 1.1.0
 
   * RND function now seeded at the start of execution to make it more random

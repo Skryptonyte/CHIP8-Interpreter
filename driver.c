@@ -2,48 +2,61 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "pthread.h"
 
 #include <time.h>
 #include "chip8core.h"
-#include <curses.h>
 #include <signal.h>
-#include <pthread.h>
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+
+
 
 void windcall(GLFWwindow* win, int width, int height){
 	glViewport(0,0,width,height);
 	puts("Window size changing");
 }
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    char key_table[16] = {'X','1','2','3',
+			'Q','W','E',
+			'A','S','D',
+			'Z','C','4','R','F','V'};
+    if (action == GLFW_PRESS){
+		for (int i = 0; i < 16; i++)
+		{
+
+			if (key == key_table[i])
+			{
+				keyb = i;
+				break;
+			}
+		}
+
+	}
+
+   if (action == GLFW_RELEASE)
+   {
+	keyb = 0xfe;
+   }
+}
+
+
 void* delayHandler(void* meh){
 while (1){
-if (dt > 0){
-dt--;
+	if (dt > 0){
+		dt--;
+	}
+	if (st > 0){
+		st--;
+	}
+	usleep(16666);
+	}
+	return NULL;
 }
-if (st > 0){
-st--;
-}
-usleep(16666);
-}
-return NULL;
-}
-void* inputHandler(void* meh){
-while (0){
-nodelay(stdscr,TRUE);
-unsigned short x= getch();
-x = x -'0';
-if ( 0 <= x && x <= 9){
-        keyb = x;
-     lastkey = x;
-}
-usleep(20);
-}
-}
+
 void handler(int sig){
-sleep(1);
-endwin();
+
 puts("Invalid Memory Access..");
 printf("Offending OpCode: %x\nProgram Counter: %x\n",current_opcode, pc);
 puts("Registers: ");
@@ -71,7 +84,7 @@ void loadGame(char* c){
 FILE* fp = fopen(c,"rb");
 
 if (!fp){
-	endwin();
+
 	puts("Game not found... exitting");
 	exit(1);
 	return;
@@ -85,10 +98,15 @@ for (int i = 512; i < 4096; i++){
 }
 }
 
-void emulateCycle(){
-unsigned short fetch = (memory[pc] << 8) | memory[pc+1];
-decodeOp(fetch);
-pc += 2;
+void emulateCycle(int cycle_count){
+	
+	for (int i = 1; i <= cycle_count; i++){
+	glfwPollEvents();
+	unsigned short fetch = (memory[pc] << 8) | memory[pc+1];
+	decodeOp(fetch);
+	pc += 2;
+	}
+	
 }
 
 void displayScreen(int VBO, int prog){
@@ -162,18 +180,38 @@ if (successStatus == GL_FALSE){
 }
 int main(int argc, char *argv[]){
 
-puts("Initializing emulated CPU");
-
-srand(time(0));
 signal(SIGSEGV, handler);
 
 initialize();
 fillFont();
+int clock_cycles = 10;
+if (argc < 2){
+	puts("Syntax: ./programfile <chip8 rom> <clocks per frame (default: 10)");
+	exit(1);
+	}
+
+if (argc == 3)
+{
+	int a = strtol(argv[2],NULL,10);
+	if (a >= 1 && a <= 100)
+	{
+		clock_cycles = a;
+	}
+	else{
+		puts("Invalid cycle count, defaulting to 10)");
+	}
+}
+
+
+puts("Initializing emulated CPU");
+
+srand(time(0));
 
 loadGame(argv[1]);
+
+
 pthread_t pid, pid2;
 pthread_create(&pid,NULL,delayHandler,NULL);
-pthread_create(&pid2,NULL,inputHandler,NULL);
 
 int cycle = 1;
 if ((memory[pc] << 8 | memory[pc+1]) == 0x1260){
@@ -194,6 +232,7 @@ glfwMakeContextCurrent(win);
 glewInit();
 
 glfwSetWindowSizeCallback(win, windcall);
+glfwSetKeyCallback(win,key_callback);
 
 int vertexShader = glCreateShader(GL_VERTEX_SHADER);
 int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -236,7 +275,7 @@ glUseProgram(prog);
 glfwSetWindowSizeCallback(win, windcall);
 
 while (1){
-emulateCycle();
+emulateCycle(clock_cycles);
 
 glClearColor(0.1,0.1,0.1,1.0);
 glClear(GL_COLOR_BUFFER_BIT);

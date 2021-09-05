@@ -1,12 +1,15 @@
-#include <curses.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 unsigned char keyb = 0xfe;
 unsigned char lastkey;
 unsigned char key = 255;
 
-int current_opcode; 
+int current_opcode;
 
 unsigned char dpflag = 0;
 
@@ -19,6 +22,7 @@ unsigned short pc;
 short int display_x = 64;
 short int display_y = 32;
 
+int y_wrap = 1;
 unsigned char fontset[0x5 * 16] = {0xf0, 0x90, 0x90, 0x90, 0xf0,   //0
 				0x20, 0x60, 0x20, 0x20, 0x70,	//1
 				0xf0, 0x10,0xf0, 0x80, 0xf0,	//2
@@ -35,7 +39,7 @@ unsigned char fontset[0x5 * 16] = {0xf0, 0x90, 0x90, 0x90, 0xf0,   //0
 				0xe0, 0x90, 0x90, 0x90, 0xe0,	//D
 				0xf0, 0x80, 0xf0, 0x80, 0xf0,	//E
 				0xf0, 0x80, 0xf0, 0x80, 0x80}	//F
-				; 
+				;
 unsigned char hfontset[0x10 * 10] = {
 0x7C, 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0x7C, 0x00,
 0x08, 0x18, 0x38, 0x08, 0x08, 0x08, 0x08, 0x08, 0x3C, 0x00,
@@ -55,9 +59,9 @@ unsigned char hfontset[0x10 * 10] = {
 0xFE, 0x80, 0x80, 0x80, 0xF8, 0x80, 0x80, 0x80, 0x80, 0x00
 };
 unsigned char memory[4096];
-  
+
 unsigned short stack[16];
-unsigned short sp; 
+unsigned short sp;
 
 wchar_t states[2] = {' ',0x2588};
 unsigned char display[128][64];
@@ -73,7 +77,7 @@ memory[i] = fontset[i];
 for (int i = 0; i < 0x200; i++){
 memory[i + 0x5*16] = hfontset[i];
 }
-} 
+}
 void decodeOp(unsigned short fetchedOpcode){
 current_opcode = fetchedOpcode;
 
@@ -98,16 +102,27 @@ switch (opcode){
 	case 0x0:
 		switch (seclastbyte){
 		case 0xc:
-			for (int y = display_y-1; y >= lastbyte; y--){
-				memcpy(&display[y-lastbyte],&display[y],(display_x)*sizeof(unsigned char));
+		for (int j = display_y-1; j >= lastbyte; j--)
+		{
+			for (int i = 0; i < display_x; i++)
+			{
+				display[i][j] = display[i][j-lastbyte];
+
 			}
-			for (int i = 0; i < lastbyte; i++){
-				memset(&display[display_y-1-i],0,display_x*sizeof(unsigned char));
+		}
+
+		for (int j = 0; j < lastbyte; j++)
+		{
+			for (int i =0; i < display_x; i++)
+			{
+				display[i][j] = 0;
 			}
+		}
+
 			return;
 		}
 		{
-		switch (secondhalf){	
+		switch (secondhalf){
 			case 0xe0:
 				for (int i = 0; i < display_x; i++){
 					for (int j = 0; j < display_y; j++){
@@ -121,14 +136,40 @@ switch (opcode){
 				sp--;
 				return;
 			case 0xfb:
-				for (int i = display_x-1-4; i >= 0; i++){
-					for (int j = 0; j < display_y; j++){
-					display[i][j+4] = display[i][j];
+
+					for (int i = display_x-1;i >= 4; i--){
+						for (int j = 0; j < display_y; j++){
+						display[i][j] = display[i-4][j];
+						}
 					}
-				}
-				return;
+
+					for (i = 0; i < 4; i++){
+						for (int j = 0; j < display_y; j++)
+						{
+							display[i][j] = 0;
+						}
+					}
+					return;
+			case 0xfc:
+					for (int i = 0; i < display_x-4; i++)
+					{
+						for (int j = 0; j < display_y; j++)
+						{
+							display[i][j] = display[i+4][j];
+						}
+					}
+
+
+					for (int i =display_x-4-1; i < display_x;i++)
+					{
+						for (int j = 0; j < display_y; j++)
+						{
+							display[i][j] = 0;
+						}
+					}
+					return;
 			case 0xfd:
-				endwin();
+
 				puts("Exit requested by program..");
 				exit(0);
 				return;
@@ -183,7 +224,7 @@ switch (opcode){
 			case 0x1:
 				v[secbyte] |= v[seclastbyte];
 				return;
-			case 0x2: 
+			case 0x2:
 				v[secbyte] &= v[seclastbyte];
 				return;
 			case 0x3:
@@ -231,7 +272,7 @@ switch (opcode){
 		i = lastthreebyte;
 		return;
 	case 0xb:
-		pc = v[0] + lastthreebyte - 0x2;	
+		pc = v[0] + lastthreebyte - 0x2;
 		return;
 	case 0xc:
 		v[secbyte] = rand() % 0xff;
@@ -250,14 +291,22 @@ switch (opcode){
 			unsigned short sprite = (memory[i +ycount] << 8)|memory[i+ycount+1];
 			int count = 0;
 			for (char x = bitcount; x >=0; x--){
-				unsigned char prev = display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
-				unsigned char* ptr = &display[((v[secbyte])+count)%display_x][(v[seclastbyte]+y)%display_y];
+				int y_coordinate = v[seclastbyte] + y;
+				if (y_wrap)
+				{
+				   y_coordinate = y_coordinate%display_y;
+			  }
+				else{
+						y_coordinate = y_coordinate <0 ? (y_coordinate >= display_y?display_y-1:y_coordinate):0;
+				}
+				unsigned char prev = display[((v[secbyte])+count)%display_x][y_coordinate];
+				unsigned char* ptr = &display[((v[secbyte])+count)%display_x][y_coordinate];
 				if (bitcount == 7){
-				display[(v[secbyte]+count)%display_x][(v[seclastbyte] + y)%display_y] ^= ((memory[i+y]) >> (x)) & 1; 
+				display[(v[secbyte]+count)%display_x][y_coordinate] ^= ((memory[i+y]) >> (x)) & 1;
 				}
 				else if (bitcount == 15){
-				unsigned short b = (sprite >> x) & 1; 
-				display[(v[secbyte]+count)%display_x][(v[seclastbyte] + y)%display_y] ^= b;
+				unsigned short b = (sprite >> x) & 1;
+				display[(v[secbyte]+count)%display_x][y_coordinate] ^= b;
 				}
 				count++;
 				if (prev != *ptr && prev == 1){
@@ -267,7 +316,7 @@ switch (opcode){
 			ycount += 2;
 		}
 		dpflag ^= 1;
-		return;	
+		return;
 	case 0xe:
 		switch (secondhalf){
 			case 0x9e:
@@ -284,23 +333,23 @@ switch (opcode){
 				}
 				return;
 				}
-	}	
+	}
 	case 0xf:
 		switch (secondhalf){
 			case 0x07:
 				v[secbyte] = dt;
 				return;
 			case 0xa:
-				nodelay(stdscr,FALSE);
-				flushinp();
-				v[secbyte] = getch();
-				if (v[secbyte] >= '0' && v[secbyte] <= '9'){
-				v[secbyte] -= '0';
+
+				glfwWaitEvents();
+
+				
+				if (keyb >= 0 && keyb <= 15){
+					v[secbyte] = keyb;
+					break;
 				}
-				else{
-				v[secbyte] -= 97;
-				v[secbyte] += 0xa;
-				}
+				
+
 				return;
 			case 0x15:
 				dt = v[secbyte];
@@ -319,7 +368,7 @@ switch (opcode){
 				return;
 			case 0x29:
 				i = (5 * v[secbyte]);
-				return;	
+				return;
 			case 0x30:
 				i = ((16*0x5)+ 10 * v[secbyte]);
 				return;
@@ -352,6 +401,6 @@ switch (opcode){
 			default:
 				return;
 			}
-		}	
+		}
 
 }
